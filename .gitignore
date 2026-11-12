@@ -4,3 +4,4 @@ out/
 *.tsbuildinfo
 .env*
 .sites-local/
+.openai/

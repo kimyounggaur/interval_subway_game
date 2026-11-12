@@ -1,0 +1,32 @@
+{
+  "name": "interval-subway",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "next build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "sim": "node --import tsx scripts/sim.ts",
+    "format": "prettier --write src scripts *.ts *.mjs *.json",
+    "format:check": "prettier --check src scripts *.ts *.mjs *.json"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "vitest": "^4.0.0",
+    "tsx": "^4.20.0",
+    "tailwindcss": "^4.1.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "prettier": "3.10.1"
+  },
+  "type": "module"
+}
