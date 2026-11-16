@@ -27,7 +27,15 @@ import {
   type SectionId,
   type Problem,
 } from "../game";
-import { useGame, type Result } from "../store/useGame";
+import {
+  useGame,
+  type Result,
+  type Session,
+  type RoundMode,
+} from "../store/useGame";
+import HomeDashboard from "../components/HomeDashboard";
+import Rulebook from "../components/Rulebook";
+import { ConfirmStart } from "../components/ConfirmStart";
 import { playPair, playMove, playEffect, stopAudio } from "../audio";
 import {
   TrainIcon,
@@ -66,6 +74,13 @@ export default function Subway() {
   const [introMessage, setIntroMessage] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
   const [notice, setNotice] = useState("");
+  const [rulebookOpen, setRulebookOpen] = useState(false);
+  const [pendingStart, setPendingStart] = useState<{
+    section: SectionId;
+    mode: RoundMode;
+    express: boolean;
+    session: Session;
+  } | null>(null);
   const [now, setNow] = useState(0);
   const [playing, setPlaying] = useState(false);
   const listenId = useRef(0);
@@ -157,18 +172,60 @@ export default function Subway() {
     setIntroMessage("");
     setScreen("intro");
   }
-  function start(express = false) {
-    if (section === "s5" && mode === "ear" && !sound) {
+  function beginRound(
+    sid: SectionId,
+    selectedMode: RoundMode,
+    express: boolean,
+    previous?: Session,
+  ) {
+    if (
+      sid === "s5" &&
+      selectedMode === "ear" &&
+      !useGame.getState().settings.sound
+    ) {
       setNotice("귀로 찾기는 소리가 필요해요. 설정에서 소리를 켜 주세요.");
       return;
     }
-    if (g.startRound(section, mode, express)) {
+    if (
+      useGame
+        .getState()
+        .startRound(
+          sid,
+          selectedMode,
+          express,
+          previous ? { replaceSession: previous } : undefined,
+        )
+    ) {
+      setSection(sid);
+      setMode(selectedMode);
       setNow(Date.now());
       setScreen("game");
       setNotice(
-        section === "s5" ? "이어폰을 쓰면 소리를 더 잘 들을 수 있어요." : "",
+        sid === "s5" ? "이어폰을 쓰면 소리를 더 잘 들을 수 있어요." : "",
+      );
+    } else {
+      setNotice(
+        "운행을 시작할 수 없어요. 잠금·급행 조건과 현재 진행 상태를 확인해 주세요.",
       );
     }
+  }
+  function requestStart(
+    sid: SectionId,
+    selectedMode: RoundMode,
+    express: boolean,
+  ) {
+    const current = useGame.getState().session;
+    if (current)
+      setPendingStart({
+        section: sid,
+        mode: selectedMode,
+        express,
+        session: current,
+      });
+    else beginRound(sid, selectedMode, express);
+  }
+  function start(express = false) {
+    requestStart(section, mode, express);
   }
   async function listen(p: Problem, kind: "melodic" | "harmonic") {
     if (!sound) {
@@ -340,9 +397,11 @@ export default function Subway() {
     }
   }
   function next() {
+    if (useGame.getState().session?.phase !== "feedback") return;
     stopAudio();
-    const hasNext = g.nextProblem();
-    if (!hasNext) setScreen("summary");
+    const hasNext = useGame.getState().nextProblem();
+    const state = useGame.getState();
+    if (!hasNext && !state.session && state.lastSummary) setScreen("summary");
     setNotice("");
   }
   function pickFree(id: string) {
@@ -387,15 +446,13 @@ export default function Subway() {
           </>
         )}
         <div className="top-actions">
-          {screen !== "guide" && (
-            <button
-              className="icon-button"
-              aria-label="이용 안내"
-              onClick={() => setScreen("guide")}
-            >
-              ?
-            </button>
-          )}
+          <button
+            className="icon-button"
+            aria-label="게임 룰북"
+            onClick={() => setRulebookOpen(true)}
+          >
+            ?
+          </button>
           {screen !== "settings" && (
             <button
               className="icon-button"
@@ -409,7 +466,9 @@ export default function Subway() {
       </header>
       {g.storageWarning && (
         <p className="storage-warning" role="status">
-          이 브라우저에서는 기록을 저장할 수 없어요.
+          {g.storageReadOnly
+            ? "기존 기록을 보호하기 위해 새 진행은 이 기기에 저장되지 않아요. 설정에서 기록을 초기화하면 기존 데이터가 삭제돼요."
+            : "이 브라우저에서는 기록을 저장할 수 없어요. 새 진행이 유지되지 않을 수 있어요."}
         </p>
       )}
       {notice && (
@@ -421,226 +480,89 @@ export default function Subway() {
         </div>
       )}
 
+      {rulebookOpen && (
+        <Rulebook
+          onClose={() => setRulebookOpen(false)}
+          isExpress={
+            screen === "game" &&
+            !!session?.express &&
+            session.phase === "answer"
+          }
+          timerRunning={!!session?.deadline && session.phase === "answer"}
+        />
+      )}
+      {pendingStart && (
+        <ConfirmStart
+          description={`${SECTIONS.find((item) => item.id === pendingStart.session.section)?.title ?? "학습"} · ${pendingStart.session.index + 1}/${pendingStart.session.problems.length}번 문제 진행 중이에요.${pendingStart.session.express ? (pendingStart.session.deadline !== null ? " 급행 제한 시간은 계속 흐릅니다." : " 귀로 찾기 제한 시간은 소리 듣기가 끝난 뒤 시작됩니다.") : ""}`}
+          onCancel={() => setPendingStart(null)}
+          onResume={() => {
+            setPendingStart(null);
+            setNow(Date.now());
+            setScreen("game");
+          }}
+          onReplace={() => {
+            const pending = pendingStart;
+            setPendingStart(null);
+            beginRound(
+              pending.section,
+              pending.mode,
+              pending.express,
+              pending.session,
+            );
+          }}
+        />
+      )}
+
       {screen === "home" && (
-        <>
-          <main className="main home-main">
-            <div className="hero">
-              <div className="eyebrow">
-                <span className="status-dot" /> 오늘도, 음악으로 출발
-              </div>
-              <h1>
-                도수는 노선으로,
-                <br />
-                성질은 역으로.
-              </h1>
-              <p className="muted">27개 역을 여행하며 음정을 익혀요.</p>
-              <div className="rainbow-rail" aria-hidden="true">
-                {COLORS.map((c, i) => (
-                  <span key={i} style={{ background: c.line }}>
-                    <i>{i + 1}</i>
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="section-tabs" aria-label="학습 구간">
-              {SECTIONS.map((s, i) => {
-                const unlocked = isUnlocked(
-                  s.id,
-                  g.stamps,
-                  g.settings.unlockAll,
-                );
-                return (
-                  <button
-                    key={s.id}
-                    aria-pressed={section === s.id}
-                    className={`section-tab ${section === s.id ? "active" : ""}`}
-                    onClick={() => {
-                      setSection(s.id);
-                      setNotice("");
-                    }}
-                  >
-                    <b>{i + 1}</b>
-                    <span>
-                      {["노선", "가운데 역", "기준음", "끝 역", "귀·환승"][i]}
-                    </span>
-                    {!unlocked && <small aria-label="잠김">⌑</small>}
-                  </button>
-                );
-              })}
-            </div>
-            <section className="section-info">
-              <div>
-                <div className="eyebrow">
-                  구간 {section.slice(1).padStart(2, "0")}
-                </div>
-                <h2>{SECTIONS.find((s) => s.id === section)?.title}</h2>
-              </div>
-              <span className="completion-pill">
-                스탬프 {sectionProgress(g.stamps, section).complete} /{" "}
-                {sectionProgress(g.stamps, section).total}
-              </span>
-            </section>
-            <p className="muted section-description">
-              {SECTIONS.find((s) => s.id === section)?.description}
-            </p>
-            {section === "s5" && (
-              <div className="button-row">
-                <button
-                  className={mode === "ear" ? "primary" : "secondary"}
-                  onClick={() => setMode("ear")}
-                >
-                  ♪ 귀로 찾기
-                </button>
-                <button
-                  className={mode === "transfer" ? "primary" : "secondary"}
-                  onClick={() => setMode("transfer")}
-                >
-                  ⇄ 환승
-                </button>
-              </div>
-            )}
-            <div className="map-heading">
-              <span className="eyebrow">1—8도 기본 노선도</span>
-              <span className="map-key">○ 아직 · ◐ 반쪽 · ● 완성</span>
-            </div>
-            <div className="route-map">
-              {Array.from({ length: 8 }, (_, i) => i + 1).map((line) => {
-                const c = COLORS[line - 1];
-                const targetSet = targetsFor(section, mode);
-                return (
-                  <div
-                    className="route-row"
-                    key={line}
-                    style={
-                      {
-                        "--line": c.line,
-                        "--edge": c.edge,
-                        "--tint": c.tint,
-                      } as React.CSSProperties
-                    }
-                  >
-                    <button
-                      className="route-label"
-                      aria-label={`${line}도선 자유 운행`}
-                      onClick={() => {
-                        setFreeStation(stationsOf(line)[0].id);
-                        setScreen("free");
-                      }}
-                    >
-                      <span>{line}</span>
-                      {line}도선
-                      {section === "s1" && (
-                        <small>
-                          {
-                            ["○", "◐", "●"][
-                              g.stamps.s1?.[`L${line}`]?.count ?? 0
-                            ]
-                          }
-                        </small>
-                      )}
-                    </button>
-                    <div className="route-stations">
-                      {stationsOf(line).map((s) => {
-                        const target =
-                          section === "s1"
-                            ? `L${line}`
-                            : section === "s5"
-                              ? `${mode === "ear" ? "ear" : "tr"}${s.semitones}`
-                              : s.id;
-                        const applicable = targetSet.includes(target);
-                        const count = g.stamps[section]?.[target]?.count ?? 0;
-                        return (
-                          <button
-                            key={s.id}
-                            className={`route-station ${applicable ? "" : "dim"}`}
-                            aria-label={`${stationName(s)} ${s.semitones}반음, 스탬프 ${count}`}
-                            onClick={() => {
-                              setFreeStation(s.id);
-                              setScreen("free");
-                            }}
-                          >
-                            <i className={`map-node stamp-${count}`}>
-                              {count === 2 ? "✓" : ""}
-                            </i>
-                            <strong>{stationName(s)}</strong>
-                            <small>{s.semitones}반음</small>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="map-caption">
-              <span>노선 = 도수</span>
-              <span>역 = 성질</span>
-              <span>한 칸 = 반음</span>
-            </div>
-            {g.session && (
-              <button
-                className="secondary resume-button"
-                onClick={() => {
-                  setNow(Date.now());
-                  setScreen("game");
-                }}
-              >
-                ↪ 하던 판 이어서 하기 · {g.session.index + 1}번 승차권
-              </button>
-            )}
-            {!isUnlocked(section, g.stamps, g.settings.unlockAll) && (
-              <div className="feedback">
-                앞 구간의 스탬프를{" "}
-                {SECTIONS[Number(section.slice(1)) - 2]?.unlock}개 완성하면
-                열려요. 자유 운행은 지금도 탈 수 있어요.
-              </div>
-            )}
-            {canExpress(section, g.stamps, mode) && (
-              <button className="secondary" onClick={() => start(true)}>
-                ⚡ 급행 모드 · {g.settings.expressSeconds}초
-              </button>
-            )}
-            <p className="home-footnote">
-              나의 속도로, 한 역씩. 기록은 이 기기에 저장돼요.
-            </p>
-          </main>
-          <div className="footer-action">
-            <button
-              className="primary"
-              disabled={!isUnlocked(section, g.stamps, g.settings.unlockAll)}
-              onClick={() => start()}
-            >
-              이 구간 시작 <span>→</span>
-            </button>
-            <button className="secondary" onClick={() => setScreen("free")}>
-              <TrainIcon size={20} /> 자유 운행
-            </button>
-          </div>
-        </>
+        <HomeDashboard
+          game={g}
+          section={section}
+          setSection={setSection}
+          mode={mode}
+          setMode={setMode}
+          onStart={start}
+          onResume={() => {
+            setNow(Date.now());
+            setScreen("game");
+          }}
+          onFree={(id) => {
+            if (id) setFreeStation(id);
+            setScreen("free");
+          }}
+        />
       )}
 
       {screen === "free" &&
         (() => {
           const station = stationById(freeStation);
-          const upper = upperNote(freeRoot, station)!;
+          const upper = upperNote(freeRoot, station);
           const pair = transferOf(station);
           const list = stationsOf(station.line);
           const idx = list.findIndex((s) => s.id === station.id);
+          const selectFreeStation = (id: string) => {
+            stopAudio();
+            pickFree(id);
+          };
           return (
             <main className="main free-main">
               <div className="eyebrow">어디든 갈 수 있는 연습 여행</div>
               <div className="free-heading">
-                <h1 className="page-title">마음껏 옮겨 보세요.</h1>
+                <h1 className="page-title">자유 운행</h1>
+                <p className="muted">
+                  기준음과 역을 골라 두 음의 거리와 소리를 살펴보세요.
+                </p>
                 <label className="root-select">
                   기준음{" "}
                   <select
                     aria-label="기준음"
                     value={rootId(freeRoot)}
-                    onChange={(e) =>
-                      setFreeRoot(
-                        ROOTS.find((r) => rootId(r) === e.target.value)!,
-                      )
-                    }
+                    onChange={(e) => {
+                      stopAudio();
+                      const root = ROOTS.find(
+                        (r) => rootId(r) === e.target.value,
+                      );
+                      if (root) setFreeRoot(root);
+                    }}
                   >
                     {ROOTS.map((r) => (
                       <option key={rootId(r)} value={rootId(r)}>
@@ -650,62 +572,96 @@ export default function Subway() {
                   </select>
                 </label>
               </div>
-              <LineButtons
-                selected={station.line}
-                onSelect={(line) =>
-                  pickFree(
-                    stationsOf(line).find(
-                      (s) => s.quality === "M" || s.quality === "P",
-                    )?.id ?? stationsOf(line)[0].id,
-                  )
-                }
-              />
-              <Track
-                line={station.line}
-                selected={station.id}
-                onSelect={pickFree}
-              />
-              <div className="button-row free-controls">
-                <button
-                  className="secondary"
-                  disabled={idx === 0}
-                  onClick={() => pickFree(list[idx - 1].id)}
-                >
-                  ← 반음 좁게
-                </button>
-                <button
-                  className="secondary"
-                  disabled={idx === list.length - 1}
-                  onClick={() => pickFree(list[idx + 1].id)}
-                >
-                  반음 넓게 →
-                </button>
-              </div>
               <section
                 className="card current-station"
                 style={{ background: COLORS[station.line - 1].tint }}
+                aria-label="현재 선택한 음정"
               >
                 <span className="eyebrow">지금 도착한 역</span>
                 <div>
                   <h2>{stationName(station)}</h2>
                   <strong>{station.semitones}반음</strong>
                 </div>
-                <p>
-                  <NoteText note={freeRoot} style={style} />{" "}
-                  <span className="muted">→</span>{" "}
-                  <NoteText note={upper} style={style} />
-                </p>
+                {upper ? (
+                  <>
+                    <p aria-live="polite">
+                      <NoteText note={freeRoot} style={style} />{" "}
+                      <span className="muted" aria-label="에서">
+                        →
+                      </span>{" "}
+                      <NoteText note={upper} style={style} />
+                    </p>
+                    {soundButtons(freeRoot, upper)}
+                    {!sound && (
+                      <p className="free-sound-note">
+                        소리가 꺼져 있어요. 설정에서 소리를 켜 주세요.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p>
+                    이 기준음에서는 음을 표시할 수 없어요. 다른 기준음이나 역을
+                    선택해 주세요.
+                  </p>
+                )}
               </section>
-              {soundButtons(freeRoot, upper)}
-              <section className="card">
-                <Score root={freeRoot} upper={upper} count style={style} />
-                <Keyboard
-                  root={freeRoot}
-                  upper={upper}
-                  count
-                  color={COLORS[station.line - 1].line}
+              <section
+                className="free-route"
+                aria-labelledby="free-route-heading"
+              >
+                <div className="free-section-heading">
+                  <h2 id="free-route-heading">노선과 역 선택</h2>
+                  <p className="muted">
+                    노선을 고르고 역을 눌러 음정을 바꿔 보세요.
+                  </p>
+                </div>
+                <LineButtons
+                  selected={station.line}
+                  onSelect={(line) =>
+                    selectFreeStation(
+                      stationsOf(line).find(
+                        (s) => s.quality === "M" || s.quality === "P",
+                      )?.id ?? stationsOf(line)[0].id,
+                    )
+                  }
                 />
+                <Track
+                  line={station.line}
+                  selected={station.id}
+                  onSelect={selectFreeStation}
+                />
+                <div className="button-row free-controls">
+                  <button
+                    className="secondary"
+                    disabled={idx <= 0}
+                    onClick={() => selectFreeStation(list[idx - 1].id)}
+                  >
+                    ← 반음 좁게
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={idx < 0 || idx === list.length - 1}
+                    onClick={() => selectFreeStation(list[idx + 1].id)}
+                  >
+                    반음 넓게 →
+                  </button>
+                </div>
               </section>
+              {upper && (
+                <section
+                  className="card free-notation"
+                  aria-label="현재 음정의 악보와 건반"
+                >
+                  <h2>악보와 건반으로 보기</h2>
+                  <Score root={freeRoot} upper={upper} count style={style} />
+                  <Keyboard
+                    root={freeRoot}
+                    upper={upper}
+                    count
+                    color={COLORS[station.line - 1].line}
+                  />
+                </section>
+              )}
               {pair ? (
                 <section className="transfer-card">
                   <div>
@@ -716,14 +672,14 @@ export default function Subway() {
                   </div>
                   <button
                     className="secondary"
-                    onClick={() => pickFree(pair.id)}
+                    onClick={() => selectFreeStation(pair.id)}
                   >
                     환승
                   </button>
                 </section>
               ) : (
                 <p className="feedback">
-                  증8도는 기본 노선 안에 환승 짝이 없어요.
+                  이 역은 기본 노선 안에 환승 짝이 없어요.
                 </p>
               )}
               <p className="muted teaching-note">
@@ -757,14 +713,23 @@ export default function Subway() {
               <main className="main game-main">
                 <div className="question-label">
                   <span className="eyebrow">
-                    {session.express ? "⚡ 급행" : "승차권"}{" "}
+                    {session.express ? "⚡ 급행" : "학습 운행"} ·{" "}
+                    {missionNames[problem.mission]}{" "}
                     {problem.id.includes("-retry-") ? "다시 풀기" : ""}
                   </span>
                   <b>
                     문제 {session.index + 1} / {session.problems.length}
                   </b>
                 </div>
-                <div className="progress" aria-label="문제 진행률">
+                <div
+                  className="progress"
+                  role="progressbar"
+                  aria-label="문제 진행률"
+                  aria-valuemin={1}
+                  aria-valuemax={session.problems.length}
+                  aria-valuenow={session.index + 1}
+                  aria-valuetext={`${session.problems.length}문제 중 ${session.index + 1}번째 문제`}
+                >
                   {session.problems.map((p, i) => (
                     <i
                       key={p.id}
@@ -786,14 +751,20 @@ export default function Subway() {
                 )}
                 {two && !isResult && (
                   <div className="stepper">
-                    <span className={session.step === 1 ? "active" : ""}>
+                    <span
+                      className={session.step === 1 ? "active" : ""}
+                      aria-current={session.step === 1 ? "step" : undefined}
+                    >
                       1{" "}
                       {problem.mission === "build"
                         ? "자리 정하기"
                         : "노선 고르기"}
                     </span>
                     <span>→</span>
-                    <span className={session.step === 2 ? "active" : ""}>
+                    <span
+                      className={session.step === 2 ? "active" : ""}
+                      aria-current={session.step === 2 ? "step" : undefined}
+                    >
                       2{" "}
                       {problem.mission === "build" ? "음 만들기" : "역 고르기"}
                     </span>
@@ -810,6 +781,11 @@ export default function Subway() {
                             : "지나침 · 정답을 함께 봐요"}
                       </span>
                       <h1>{stationName(problem.station)}역</h1>
+                      <p className="muted">
+                        {noteLabel(problem.root, style)}에서{" "}
+                        {noteLabel(upper, style)}까지 · {problem.station.line}
+                        도선
+                      </p>
                     </div>
                     {last?.stampGained && (
                       <StampBadge
@@ -933,7 +909,11 @@ export default function Subway() {
                                   style,
                                   session.express,
                                 )
-                              : "두 음 사이를 살펴보세요."}
+                              : problemInstruction(
+                                  problem,
+                                  style,
+                                  session.express,
+                                )}
                           </h2>
                           <Score
                             root={problem.root}
@@ -1122,6 +1102,7 @@ export default function Subway() {
                           <button
                             key={s.id}
                             className={`secondary ${session.selectedStation === s.id ? "selected" : ""}`}
+                            aria-pressed={session.selectedStation === s.id}
                             onClick={() =>
                               g.patchSession({ selectedStation: s.id })
                             }
@@ -1146,7 +1127,11 @@ export default function Subway() {
                             })
                           }
                         >
-                          ⓘ 세는 법 보기
+                          ⓘ 세는 법 보기{" "}
+                          <span className="hint-consequence">
+                            (힌트를 사용하면 이번 문제는 한 번에 도착으로
+                            기록되지 않아요)
+                          </span>
                         </button>
                       )}
                     {problem.mission === "ear" && playing && (
@@ -1187,9 +1172,9 @@ export default function Subway() {
                   </button>
                 ) : (
                   <p className="muted">
-                    {session.express
-                      ? "제한 시간 안에 도착해 보세요."
-                      : "천천히 살펴보고 골라 보세요."}
+                    {problem.mission === "move"
+                      ? "위에서 도착할 역의 성질을 눌러 주세요."
+                      : "위에서 정답 노선을 눌러 주세요."}
                   </p>
                 )}
               </div>
@@ -1211,6 +1196,11 @@ export default function Subway() {
               <p className="muted">
                 {SECTIONS.find((x) => x.id === s.section)?.title}
                 {s.express ? " · 급행 모드" : ""}
+              </p>
+              <p className="summary-recap">
+                총 {s.total}문제 중{" "}
+                {s.results.filter((result) => result.arrived).length}문제에
+                도착했어요.
               </p>
               <div className="summary-stats">
                 <div className="summary-stat">
@@ -1264,8 +1254,11 @@ export default function Subway() {
                 <section className="card">
                   <h2>다시 살펴볼 역</h2>
                   {s.missed.map((r, i) => (
-                    <p key={i}>
-                      {stationName(r.problem.station)}{" "}
+                    <p
+                      key={`${r.problem.id}-${i}`}
+                      className="summary-missed-item"
+                    >
+                      <strong>{stationName(r.problem.station)}역</strong>{" "}
                       <small className="muted">
                         {r.lineError
                           ? "노선부터 세어 봐요."
@@ -1281,8 +1274,7 @@ export default function Subway() {
                 className="primary"
                 onClick={() => {
                   setSection(s.section);
-                  if (g.startRound(s.section, s.mode, s.express))
-                    setScreen("game");
+                  requestStart(s.section, s.mode, s.express);
                 }}
               >
                 한 판 더 →

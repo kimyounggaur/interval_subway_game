@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./game-remaster.css";
+import "./free-ride.css";
 export const metadata: Metadata = {
   title: "음정 지하철 | 노선으로 배우는 음악",
   description: "도수는 노선, 성질은 역. 27개 역을 여행하며 음정을 익혀요.",

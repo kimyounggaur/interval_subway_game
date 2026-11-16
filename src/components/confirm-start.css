@@ -1,0 +1,26 @@
+.confirm-start {
+  width: min(90vw, 420px);
+  border: 2px solid #8c9d7b;
+  border-radius: 20px;
+  padding: 24px;
+  color: #294d43;
+  background: #fffaf0;
+  box-shadow: 0 16px 48px #1c332c66;
+}
+.confirm-start::backdrop {
+  background: #14271f99;
+}
+.confirm-start h2 {
+  margin: 0 0 12px;
+}
+.confirm-start p {
+  line-height: 1.65;
+}
+.confirm-start-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+.confirm-start-actions button {
+  min-height: 44px;
+}

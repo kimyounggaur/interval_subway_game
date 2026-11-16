@@ -2071,3 +2071,197 @@ button.route-station {
 .route-label {
   min-height: 44px;
 }
+
+/* Tempera station remaster: artwork stays behind the interactive score and maps. */
+:root {
+  --cream: #faf3df;
+  --navy: #294d43;
+  --muted: #51665b;
+  --border: #a69d80;
+  --line-soft: #ddd1b3;
+}
+body {
+  background: #d5d8c4;
+}
+.app-shell {
+  background: linear-gradient(180deg, #faf3df, #f5edda);
+  box-shadow: 0 10px 65px #314b3b32;
+}
+.topbar {
+  background: #f8f0d9;
+  border-bottom: 1px solid #c9b78e;
+}
+.brand-icon svg {
+  background: #31594a;
+  color: #fff6dc;
+}
+.top-actions .icon-button {
+  background: #fffaf0;
+  border-color: #d4c7a8;
+  color: #31594a;
+}
+.hero {
+  min-height: 293px;
+  border-radius: 22px;
+  border: 1px solid #bbaa81;
+  overflow: hidden;
+  padding: 20px 18px 13px;
+  isolation: isolate;
+  background:
+    linear-gradient(
+      180deg,
+      #fff5daeb 0%,
+      #fff5dad9 47%,
+      #fff5da88 72%,
+      #faf2dbeb 100%
+    ),
+    url("/remaster/station.webp") center 43% / cover;
+  box-shadow:
+    0 4px 0 #cab98d75,
+    0 10px 24px #6c63401c;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: 5%;
+  bottom: 37px;
+  width: 58%;
+  height: 100px;
+  background: url("/remaster/train.webp") center / contain no-repeat;
+  filter: drop-shadow(0 5px 5px #3a46394d);
+  pointer-events: none;
+}
+.hero h1 {
+  color: #274b3d;
+  font-size: 29px;
+  text-shadow: 0 1px #fff8e6;
+}
+.hero > .muted {
+  color: #385b4b;
+  font-weight: 700;
+}
+.hero .eyebrow {
+  color: #315b4c;
+}
+.rainbow-rail {
+  margin-top: 102px;
+}
+.section-tabs {
+  background: #e7dfc9;
+  border: 1px solid #d0c09a;
+  box-shadow: inset 0 1px 2px #927f5922;
+}
+.section-tab.active,
+.section-tab[aria-pressed="true"] {
+  background: #31594a;
+  color: #fff9e8;
+}
+.card,
+.ticket,
+.summary-stat,
+.intro > .score {
+  background: #fffaf0;
+  border-color: #d7c8a4;
+  box-shadow:
+    0 3px 0 #c4b38c38,
+    0 7px 18px #5b533b0c;
+}
+.ticket {
+  border: 1.5px solid #a89772;
+}
+.ticket-head {
+  background: #f0e5c8;
+  border-color: #c1ae85;
+}
+.primary {
+  background: #31594a;
+  border-color: #284c3f;
+  color: #fffaf0;
+}
+.primary:hover {
+  background: #24493c;
+}
+.secondary {
+  background: #fffaf0;
+  border-color: #738774;
+  color: #294d43;
+}
+.secondary:hover {
+  background: #edf1df;
+}
+.route-map {
+  background: #fffaf0;
+  border: 1px solid #d7c8a4;
+  border-radius: 18px;
+  padding: 15px 10px;
+  box-shadow: 0 3px 0 #c4b38c38;
+}
+.map-heading {
+  border-color: #d1c3a2;
+}
+.completion-pill {
+  background: #fbf2dc;
+  border-color: #cbb991;
+}
+.feedback {
+  background: #edf0df;
+  border-color: #597d65;
+}
+.feedback.success {
+  background: #edf2df;
+}
+.footer-action {
+  background: #faf3df;
+  border-color: #d2c5a4;
+  box-shadow: 0 -7px 17px #faf3dfdd;
+}
+.summary-icon {
+  width: 180px;
+  height: 110px;
+  border: 0;
+  border-radius: 0;
+  background: url("/remaster/train.webp") center / contain no-repeat;
+}
+.summary-icon svg {
+  display: none;
+}
+.intro-progress > .active {
+  background: #31594a;
+}
+@media (max-width: 370px) {
+  .hero {
+    min-height: 280px;
+    padding: 18px 15px 12px;
+  }
+  .hero h1 {
+    font-size: 26px;
+  }
+  .rainbow-rail {
+    margin-top: 100px;
+  }
+  .route-map {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+.completion-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.completion-pill::before {
+  content: "";
+  display: block;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  background: url("/remaster/props.webp") 50% 0% / 300% 300% no-repeat;
+}
+.summary-icon {
+  width: 112px;
+  height: 112px;
+  background-image: url("/remaster/props.webp");
+  background-size: 300% 300%;
+  background-position: 0% 100%;
+}

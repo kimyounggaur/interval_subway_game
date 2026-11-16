@@ -1,0 +1,221 @@
+.rb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(21, 40, 32, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+.rb-dialog {
+  width: min(100%, 600px);
+  max-height: min(90dvh, 860px);
+  display: flex;
+  flex-direction: column;
+  background: #fffaf0;
+  color: #253c31;
+  border: 2px solid #b8a278;
+  border-radius: 22px;
+  box-shadow: 0 18px 55px #132b2090;
+  overflow: hidden;
+}
+.rb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px 10px;
+  background: #f4ead0;
+}
+.rb-header h2 {
+  font-size: 1.2rem;
+  margin: 0;
+  color: #264b3c;
+}
+.rb-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #587665;
+}
+.rb-close {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #a8997b;
+  background: #fffaf0;
+  color: #264b3c;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.rb-timer {
+  margin: 0;
+  padding: 8px 18px;
+  background: #fff0c7;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #654500;
+}
+.rb-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 10px 14px;
+  border-bottom: 1px solid #dfd1b4;
+  scrollbar-width: thin;
+}
+.rb-tabs button,
+.rb-footer button {
+  min-height: 44px;
+  flex: 0 0 auto;
+  padding: 8px 13px;
+  border: 1px solid #bcb092;
+  border-radius: 14px;
+  background: #fffdf7;
+  color: #31594a;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rb-tabs button[aria-selected="true"],
+.rb-footer button {
+  background: #31594a;
+  color: #fffaf0;
+  border-color: #31594a;
+}
+.rb-dialog button:focus-visible,
+.rb-scroll:focus-visible {
+  outline: 3px solid #a7551e;
+  outline-offset: -3px;
+}
+.rb-scroll {
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 14px 20px 24px;
+  line-height: 1.7;
+  min-height: 0;
+}
+.rb-scroll h3 {
+  font-size: 1.2rem;
+  margin: 4px 0 8px;
+  color: #284c3f;
+}
+.rb-scroll h4 {
+  font-size: 1rem;
+  margin: 18px 0 5px;
+}
+.rb-scroll p {
+  margin: 7px 0 12px;
+}
+.rb-scroll ol {
+  padding-left: 1.4em;
+}
+.rb-figure {
+  margin: 14px 0 18px;
+  padding: 12px;
+  background: #f2ead7;
+  border: 1px solid #dacdaf;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.rb-figure img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 220px;
+  margin-inline: auto;
+  object-fit: contain;
+  border-radius: 10px;
+}
+.rb-figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 150px;
+}
+.rb-figure figcaption {
+  text-align: center;
+  font-size: 0.83rem;
+  color: #526656;
+  margin-top: 8px;
+}
+.rb-missions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+.rb-missions article {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: #f7f0df;
+  border: 1px solid #e0d3b6;
+  border-radius: 14px;
+  padding: 10px;
+}
+.rb-missions article span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #31594a;
+  color: white;
+  font-weight: bold;
+}
+.rb-missions h4 {
+  margin: 0;
+}
+.rb-missions p {
+  font-size: 0.87rem;
+  line-height: 1.5;
+  margin: 3px 0;
+}
+.rb-stamps {
+  display: flex;
+  justify-content: center;
+  gap: 55px;
+  font-size: 3rem;
+  color: #a94f3a;
+  line-height: 1;
+}
+.rb-stamps span {
+  text-align: center;
+}
+.rb-stamps small {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  color: #526656;
+}
+.rb-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #f6eedc;
+  border-top: 1px solid #dfd1b4;
+}
+.rb-footer span {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.rb-footer button {
+  margin-left: auto;
+}
+@media (max-width: 380px) {
+  .rb-missions {
+    grid-template-columns: 1fr;
+  }
+  .rb-scroll {
+    padding: 12px 15px 22px;
+  }
+  .rb-dialog {
+    max-height: 94dvh;
+  }
+}

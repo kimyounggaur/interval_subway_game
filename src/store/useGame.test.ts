@@ -52,6 +52,7 @@ beforeEach(() => {
     lastSummary: null,
     introSeen: false,
     storageWarning: false,
+    storageReadOnly: false,
   });
   useGame.getState().hydrate();
 });
@@ -116,7 +117,60 @@ describe("browser-local session state", () => {
     expect(useGame.getState().startRound("s2", "ear", true)).toBe(false);
     useGame.getState().setSettings({ sound: false });
     expect(useGame.getState().startRound("s5", "ear")).toBe(false);
-    expect(useGame.getState().startRound("s5", "transfer")).toBe(true);
+    expect(
+      useGame.getState().startRound("s5", "transfer", false, {
+        replaceSession: useGame.getState().session!,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not start before saved progress is loaded", () => {
+    useGame.setState({ hydrated: false });
+    expect(useGame.getState().startRound("s1")).toBe(false);
+    expect(useGame.getState().session).toBeNull();
+  });
+
+  it("protects an interrupted session unless the current session is explicitly replaced", () => {
+    useGame.getState().setSettings({ unlockAll: true });
+    expect(useGame.getState().startRound("s1")).toBe(true);
+    useGame.getState().patchSession({ step: 2, hint: true, tries: [1, 0] });
+    const previous = useGame.getState().session!;
+    const persisted = saved.get(STORAGE_KEY);
+    expect(useGame.getState().startRound("s2")).toBe(false);
+    expect(useGame.getState().session).toBe(previous);
+    expect(saved.get(STORAGE_KEY)).toBe(persisted);
+    expect(
+      useGame
+        .getState()
+        .startRound("s2", "ear", false, { replaceSession: previous }),
+    ).toBe(true);
+    const replacement = useGame.getState().session!;
+    expect(replacement.section).toBe("s2");
+    expect(
+      useGame
+        .getState()
+        .startRound("s1", "ear", false, { replaceSession: previous }),
+    ).toBe(false);
+    expect(useGame.getState().session).toBe(replacement);
+  });
+
+  it("retains the current round when an explicitly requested replacement is unavailable", () => {
+    useGame.getState().setSettings({ unlockAll: true });
+    expect(useGame.getState().startRound("s1")).toBe(true);
+    useGame.getState().setSettings({ sound: false });
+    const previous = useGame.getState().session!;
+    expect(
+      useGame
+        .getState()
+        .startRound("s5", "ear", false, { replaceSession: previous }),
+    ).toBe(false);
+    expect(useGame.getState().session).toBe(previous);
+    expect(
+      useGame
+        .getState()
+        .startRound("s1", "ear", true, { replaceSession: previous }),
+    ).toBe(false);
+    expect(useGame.getState().session).toBe(previous);
   });
 
   it("finishes express without changing stamps, missed targets or adding retries", () => {
@@ -161,6 +215,60 @@ describe("browser-local session state", () => {
       problems: 6,
     });
     expect(useGame.getState().introSeen).toBe(true);
+  });
+
+  it("does not overwrite unreadable or unsupported stored progress without an explicit reset", () => {
+    for (const raw of [
+      "{bad json",
+      JSON.stringify({ version: 99, progress: "keep" }),
+    ]) {
+      useGame.setState({ hydrated: false, storageReadOnly: false });
+      saved.set(STORAGE_KEY, raw);
+      useGame.getState().hydrate();
+      expect(useGame.getState().storageWarning).toBe(true);
+      useGame.getState().setSettings({ sound: false });
+      expect(saved.get(STORAGE_KEY)).toBe(raw);
+      useGame.getState().resetRecords();
+      expect(JSON.parse(saved.get(STORAGE_KEY)!).version).toBe(1);
+    }
+  });
+
+  it("preserves original progress if any stored field is malformed or would be dropped", () => {
+    const cases = [
+      { stamps: { s1: { L1: { count: 8, roots: ["C"] } } } },
+      { stamps: { s1: { L1: { count: 1, roots: ["C", 42] } } } },
+      { missed: { s1: ["L1", 123] } },
+      { express: { s1: { best: "bad", streak: 1 } } },
+      { history: [{ date: "bad" }] },
+      { lastSummary: { section: "s1" } },
+      { settings: { sound: "bad" } },
+      { futureProgress: { value: 2 } },
+    ];
+    for (const fields of cases) {
+      useGame.setState({ hydrated: false, storageReadOnly: false });
+      const raw = JSON.stringify({ version: 1, ...fields });
+      saved.set(STORAGE_KEY, raw);
+      useGame.getState().hydrate();
+      expect(useGame.getState().storageReadOnly).toBe(true);
+      useGame.getState().setIntroSeen(true);
+      expect(saved.get(STORAGE_KEY)).toBe(raw);
+    }
+  });
+
+  it("loads older valid partial version-one progress without entering read-only mode", () => {
+    useGame.setState({ hydrated: false, storageReadOnly: false });
+    saved.set(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        settings: { sound: false },
+        stamps: { s1: { L1: { count: 1, roots: ["C"] } } },
+      }),
+    );
+    useGame.getState().hydrate();
+    expect(useGame.getState().storageReadOnly).toBe(false);
+    expect(useGame.getState().settings.sound).toBe(false);
+    expect(useGame.getState().stamps.s1.L1.count).toBe(1);
   });
 
   it("discards incompatible versions and malformed interrupted sessions", () => {
