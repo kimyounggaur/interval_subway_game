@@ -1,0 +1,59 @@
+/* Free ride keeps the selected interval and listening controls close together. */
+.free-main .free-heading p {
+  line-height: 1.5;
+  margin: -5px 0 0;
+}
+.free-main .current-station .sound-buttons {
+  margin-top: 14px;
+}
+.free-main .current-station .free-sound-note {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  margin-top: 10px;
+}
+.free-route {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.free-section-heading h2,
+.free-notation h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+.free-section-heading p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.free-route .line-button {
+  min-height: 78px;
+  gap: 4px;
+}
+.free-route .line-medallion {
+  width: 34px;
+  height: 34px;
+}
+.free-route .line-medallion b {
+  width: 23px;
+  height: 23px;
+  font-size: 15px;
+}
+.free-route .track-wrap {
+  padding-top: 4px;
+}
+.free-route .free-controls {
+  margin-top: 0;
+}
+.free-notation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 360px) {
+  .free-heading h1 {
+    font-size: 24px;
+  }
+}

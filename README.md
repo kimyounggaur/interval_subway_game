@@ -48,3 +48,9 @@ npm run build
 GitHub 소스: https://github.com/kimyounggaur/interval_subway_game
 
 Sites 원본 커밋 `bb34d1e7b581c0b190a1519bdbdf722b22579662`에서 가져왔으며, 호스팅 계정별 설정과 인증 정보는 제외했습니다. Vercel 배포는 별도입니다.
+
+## UI·UX 리마스터
+
+템페라 배경과 열차를 활용한 모드 선택, 학습 구간별 진행·해금 안내, 전체 노선도, 자유 운행 및 게임 중에 열 수 있는 룰북을 제공합니다. 진행 중인 운행이 있을 때 새 운행을 시작하려면 확인이 필요합니다. 저장 데이터를 안전하게 읽지 못하면 기존 기록을 보호하기 위해 임시 메모리 모드로 전환합니다.
+
+검증 범위와 실행 환경 제약은 [UI·UX 검증 기록](docs/ux-remaster-verification.md)을 참고하세요.

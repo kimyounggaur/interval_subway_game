@@ -98,6 +98,7 @@ interface Persisted {
 export interface GameState extends Omit<Persisted, "version"> {
   hydrated: boolean;
   storageWarning: boolean;
+  storageReadOnly: boolean;
   hydrate: () => void;
   setSettings: (patch: Partial<Settings>) => void;
   setIntroSeen: (seen: boolean) => void;
@@ -105,6 +106,7 @@ export interface GameState extends Omit<Persisted, "version"> {
     section: SectionId,
     mode?: RoundMode,
     express?: boolean,
+    options?: { replaceSession: Session },
   ) => boolean;
   patchSession: (patch: Partial<Session>) => void;
   finishProblem: (result: Result) => void;
@@ -138,6 +140,27 @@ const finite = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 const section = (value: unknown): value is SectionId =>
   SECTION_IDS.includes(value as SectionId);
+// If hydration drops any stored field or array item, keep the original data
+// untouched. Missing optional fields in older v1 records remain compatible.
+function containsStoredValue(stored: unknown, loaded: unknown): boolean {
+  if (Array.isArray(stored)) {
+    return (
+      Array.isArray(loaded) &&
+      stored.length === loaded.length &&
+      stored.every((item, index) => containsStoredValue(item, loaded[index]))
+    );
+  }
+  if (record(stored)) {
+    return (
+      record(loaded) &&
+      Object.entries(stored).every(
+        ([key, value]) =>
+          Object.hasOwn(loaded, key) && containsStoredValue(value, loaded[key]),
+      )
+    );
+  }
+  return stored === loaded;
+}
 function validNote(value: unknown): value is Note {
   return (
     record(value) &&
@@ -280,7 +303,8 @@ function questionFields(
   };
 }
 function persist(state: GameState) {
-  if (!state.hydrated || typeof window === "undefined") return;
+  if (!state.hydrated || state.storageReadOnly || typeof window === "undefined")
+    return;
   const data: Persisted = {
     version: 1,
     settings: state.settings,
@@ -305,15 +329,17 @@ export const useGame = create<GameState>((set, get) => ({
   introSeen: false,
   hydrated: false,
   storageWarning: false,
+  storageReadOnly: false,
   hydrate() {
     if (get().hydrated) return;
     if (typeof window === "undefined") return;
     let saved: unknown = null;
+    let readError = false;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       saved = raw ? JSON.parse(raw) : null;
     } catch {
-      set({ storageWarning: true });
+      readError = true;
     }
     if (record(saved) && saved.version === 1) {
       const stamps: Stamps = {};
@@ -392,7 +418,8 @@ export const useGame = create<GameState>((set, get) => ({
         finite(saved.lastSummary.best)
           ? (saved.lastSummary as unknown as Summary)
           : null;
-      set({
+      const loaded = {
+        version: 1,
         settings: readSettings(saved.settings),
         stamps,
         missed,
@@ -401,9 +428,20 @@ export const useGame = create<GameState>((set, get) => ({
         session: resumed,
         lastSummary,
         introSeen: saved.introSeen === true,
+      };
+      const unsafe = !containsStoredValue(saved, loaded);
+      const { version: _version, ...loadedState } = loaded;
+      set({
+        ...loadedState,
+        storageWarning: unsafe,
+        storageReadOnly: unsafe,
         hydrated: true,
       });
-    } else set({ hydrated: true });
+    } else {
+      // Preserve unreadable or future-version data instead of overwriting it.
+      const unsafe = readError || saved !== null;
+      set({ hydrated: true, storageWarning: unsafe, storageReadOnly: unsafe });
+    }
   },
   setSettings(patch) {
     set((state) => ({
@@ -413,8 +451,14 @@ export const useGame = create<GameState>((set, get) => ({
   setIntroSeen(introSeen) {
     set({ introSeen });
   },
-  startRound(sid, mode = "ear", express = false) {
+  startRound(sid, mode = "ear", express = false, options) {
     const state = get();
+    // Wait for persisted progress before allowing a round to start.
+    if (!state.hydrated) return false;
+    // Explicitly authorize replacement of this exact in-progress session.
+    // A stale confirmation must not replace a newer round.
+    if (state.session && options?.replaceSession !== state.session)
+      return false;
     if (
       !isUnlocked(sid, state.stamps, state.settings.unlockAll) ||
       (express && !canExpress(sid, state.stamps, mode))
@@ -600,7 +644,7 @@ export const useGame = create<GameState>((set, get) => ({
     return false;
   },
   resetRecords() {
-    set(emptyRecords());
+    set({ ...emptyRecords(), storageReadOnly: false, storageWarning: false });
   },
   discardSession() {
     set({ session: null });

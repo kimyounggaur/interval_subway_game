@@ -1,0 +1,86 @@
+/* 운행 중 핵심 질문과 답안을 먼저 읽도록 구성한다. */
+.game-main {
+  gap: 14px;
+}
+.game-main .question-label {
+  min-height: 44px;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #c8b992;
+  border-radius: 14px;
+  background: #fff9e9;
+}
+.game-main .question-label .eyebrow {
+  color: #31594a;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.game-main .question-label b {
+  flex-shrink: 0;
+  color: #294d43;
+}
+.game-main .ticket {
+  overflow: hidden;
+}
+.game-main .ticket-head {
+  padding: 10px 14px;
+}
+.game-main .question-title {
+  margin: 0;
+  color: #294d43;
+  font-size: clamp(1.15rem, 5vw, 1.4rem);
+  line-height: 1.4;
+}
+.game-main .quality-options > button,
+.game-main .ear-options > button {
+  min-height: 48px;
+}
+.game-main .ear-options > button.selected {
+  outline: 2px solid #31594a;
+  outline-offset: -3px;
+  font-weight: 800;
+}
+.game-main .hint-button {
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  line-height: 1.45;
+}
+.game-main .hint-consequence {
+  color: #51665b;
+  font-weight: 500;
+}
+.game-main .arrival-title .muted {
+  margin: 7px 0 0;
+  font-size: 0.9rem;
+}
+.game-main .feedback {
+  line-height: 1.6;
+}
+.game-main .stepper {
+  line-height: 1.4;
+}
+@media (max-width: 360px) {
+  .game-main .quality-options {
+    gap: 4px;
+  }
+  .game-main .question-label {
+    padding-inline: 9px;
+  }
+}
+.summary .summary-recap {
+  margin: 0;
+  padding: 11px 14px;
+  border: 1px solid #d7c8a4;
+  border-radius: 14px;
+  background: #fffaf0;
+  color: #294d43;
+  text-align: center;
+  line-height: 1.5;
+}
+.summary .summary-missed-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  line-height: 1.55;
+}
