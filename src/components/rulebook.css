@@ -219,3 +219,80 @@
     max-height: 94dvh;
   }
 }
+.rb-art {
+  width: min(100%, 320px);
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  background-color: #e6ddc8;
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  border-radius: 10px;
+}
+.rb-topic-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.rb-topic-nav button {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid #b6a47d;
+  background: #fffdf7;
+  color: #31594a;
+  padding: 7px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rb-example {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: 14px;
+  background: #e8efdf;
+}
+.rb-example span {
+  padding: 8px;
+  border-radius: 12px;
+  background: #fffaf0;
+  border: 1px solid #b9c6aa;
+}
+.rb-example strong {
+  color: #31594a;
+}
+.rb-number {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #31594a;
+  color: white;
+}
+.rb-mission-section {
+  margin-top: 20px;
+  padding-top: 4px;
+  border-top: 1px solid #ded3bb;
+}
+.rb-tip {
+  padding: 12px;
+  background: #ecf1e1;
+  border-left: 4px solid #6d8c68;
+  border-radius: 8px;
+}
+.rb-scroll h3[id],
+.rb-scroll h4[id] {
+  scroll-margin-top: 14px;
+}
+
+.rulebook-trigger {
+  width: auto;
+  min-width: 72px;
+  padding-inline: 10px;
+  gap: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+}

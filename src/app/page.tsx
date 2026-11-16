@@ -447,11 +447,11 @@ export default function Subway() {
         )}
         <div className="top-actions">
           <button
-            className="icon-button"
-            aria-label="게임 룰북"
+            className="icon-button rulebook-trigger"
+            aria-label="게임 룰북 열기"
             onClick={() => setRulebookOpen(true)}
           >
-            ?
+            <span aria-hidden="true">📖</span> 룰북
           </button>
           {screen !== "settings" && (
             <button
